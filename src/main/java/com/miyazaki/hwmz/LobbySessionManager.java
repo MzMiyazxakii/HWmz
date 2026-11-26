@@ -85,6 +85,13 @@ public final class LobbySessionManager {
     private LobbySessionManager() {
     }
 
+    public static boolean isLobbyPlayer(net.minecraft.world.entity.player.Player player) {
+        if (player == null || player.level().dimension() != Level.OVERWORLD) return false;
+        return player.getX() >= -6 && player.getX() <= 5
+                && player.getZ() >= -6 && player.getZ() <= 5
+                && player.getY() >= 198 && player.getY() <= 206;
+    }
+
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
         ensureLobby(event.getServer().overworld());
@@ -231,6 +238,7 @@ public final class LobbySessionManager {
             alivePlayers.clear();
 
             for (ServerPlayer onlinePlayer : server.getPlayerList().getPlayers()) {
+                LobbyInventoryMenu.returnWarehouseItems(onlinePlayer);
                 participants.add(onlinePlayer.getUUID());
                 alivePlayers.add(onlinePlayer.getUUID());
                 teleportToSession(onlinePlayer);
