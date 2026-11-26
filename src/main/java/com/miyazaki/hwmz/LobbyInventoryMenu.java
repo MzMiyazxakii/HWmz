@@ -17,6 +17,9 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
     private static final String MARKER_KEY = "hwmz_warehouse_item";
     public static final int WAREHOUSE_SIZE = 80;
     public static final int WAREHOUSE_COLUMNS = 8;
+    public static final int VISIBLE_ROWS = 5;
+    private static final int VISIBLE_SLOTS = WAREHOUSE_COLUMNS * VISIBLE_ROWS;
+    private int warehouseScrollRow;
     private final SimpleContainer warehouse;
     private int currency;
 
@@ -26,16 +29,9 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
         currency = HWMZCurrency.get(playerInventory.player);
         if (playerInventory.player instanceof ServerPlayer serverPlayer) load(serverPlayer, warehouse);
 
-        for (int row = 0; row < WAREHOUSE_SIZE / WAREHOUSE_COLUMNS; row++) {
+        for (int row = 0; row < VISIBLE_ROWS; row++) {
             for (int col = 0; col < WAREHOUSE_COLUMNS; col++) {
-                final int slotIndex = row * WAREHOUSE_COLUMNS + col;
-                addSlot(new Slot(warehouse, slotIndex, 72 + col * 22, 69 + row * 22) {
-                    @Override
-                    public void set(ItemStack stack) {
-                        if (!stack.isEmpty()) stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
-                        super.set(stack);
-                    }
-                });
+                addSlot(new WarehouseSlot(warehouse, 72 + col * 22, 73 + row * 22, row * WAREHOUSE_COLUMNS + col));
             }
         }
         for (int i = 0; i < 9; i++)
@@ -52,6 +48,14 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
     }
 
     public int getCurrency() { return currency; }
+
+    public void setWarehouseScrollRow(int row) {
+        int max = WAREHOUSE_SIZE / WAREHOUSE_COLUMNS - VISIBLE_ROWS;
+        warehouseScrollRow = Math.max(0, Math.min(max, row));
+        for (int i = 0; i < VISIBLE_SLOTS; i++) {
+            ((WarehouseSlot) slots.get(i)).setStorageIndex(warehouseScrollRow * WAREHOUSE_COLUMNS + i);
+        }
+    }
 
     public boolean tryPurchaseCase13(ServerPlayer serverPlayer) {
         if (!LobbySessionManager.isLobbyPlayer(serverPlayer) || currency < 500) {
