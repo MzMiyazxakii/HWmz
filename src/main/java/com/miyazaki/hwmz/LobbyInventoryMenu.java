@@ -27,9 +27,9 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
             for (int col = 0; col < 4; col++) {
                 addSlot(new Slot(warehouse, row * 4 + col, 43 + col * 33, 29 + row * 33) {
                     @Override
-                    public ItemStack onTake(Player player, ItemStack stack) {
+                    public void onTake(Player player, ItemStack stack) {
                         stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
-                        return super.onTake(player, stack);
+                        super.onTake(player, stack);
                     }
                 });
             }
@@ -57,8 +57,8 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
         ItemStack source = slot.getItem();
         ItemStack original = source.copy();
         if (index < 16) {
-            if (!moveItemStackTo(source, 16, 25, true)) return empty;
             source.getOrCreateTag().putBoolean(MARKER_KEY, true);
+            if (!moveItemStackTo(source, 16, 25, true)) return empty;
         } else {
             if (!moveItemStackTo(source, 0, 16, false)) return empty;
         }
@@ -78,7 +78,7 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
 
     public static void returnWarehouseItems(ServerPlayer player) {
         CompoundTag root = player.getPersistentData();
-        ListTag stored = root.getCompound(Player.PERSISTED_NBT_TAG).getList(STORAGE_KEY, 10);
+        ListTag stored = root.getList(STORAGE_KEY, 10);
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
             ItemStack stack = player.getInventory().getItem(slot);
             if (!stack.isEmpty() && stack.getOrCreateTag().getBoolean(MARKER_KEY)) {
@@ -104,12 +104,12 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
                 if (inserted && stack.isEmpty()) player.getInventory().setItem(slot, ItemStack.EMPTY);
             }
         }
-        root.getCompound(Player.PERSISTED_NBT_TAG).put(STORAGE_KEY, stored);
+        root.put(STORAGE_KEY, stored);
         player.getInventory().setChanged();
     }
 
     private static void load(ServerPlayer player, SimpleContainer container) {
-        ListTag list = player.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG).getList(STORAGE_KEY, 10);
+        ListTag list = player.getPersistentData().getList(STORAGE_KEY, 10);
         for (int i = 0; i < Math.min(16, list.size()); i++) {
             ItemStack stack = ItemStack.of(list.getCompound(i));
             if (!stack.isEmpty()) stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
@@ -124,6 +124,6 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
             if (!stack.isEmpty()) stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
             list.add(stack.save(new CompoundTag()));
         }
-        player.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG).put(STORAGE_KEY, list);
+        player.getPersistentData().put(STORAGE_KEY, list);
     }
 }
