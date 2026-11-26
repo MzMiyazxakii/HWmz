@@ -15,24 +15,29 @@ import net.minecraftforge.items.ItemHandlerHelper;
 public class LobbyInventoryMenu extends AbstractContainerMenu {
     private static final String STORAGE_KEY = "HWMZPersonalStorage";
     private static final String MARKER_KEY = "hwmz_warehouse_item";
+    public static final int WAREHOUSE_SIZE = 80;
+    public static final int WAREHOUSE_COLUMNS = 8;
     private final SimpleContainer warehouse;
     private int currency;
 
     public LobbyInventoryMenu(int id, Inventory playerInventory) {
         super(LobbyMenus.INVENTORY.get(), id);
-        warehouse = new SimpleContainer(16);
+        warehouse = new SimpleContainer(WAREHOUSE_SIZE);
         currency = HWMZCurrency.get(playerInventory.player);
         if (playerInventory.player instanceof ServerPlayer serverPlayer) load(serverPlayer, warehouse);
 
-        for (int row = 0; row < 4; row++)
-            for (int col = 0; col < 4; col++)
-                addSlot(new Slot(warehouse, row * 4 + col, 75 + col * 22, 62 + row * 22) {
+        for (int row = 0; row < WAREHOUSE_SIZE / WAREHOUSE_COLUMNS; row++) {
+            for (int col = 0; col < WAREHOUSE_COLUMNS; col++) {
+                final int slotIndex = row * WAREHOUSE_COLUMNS + col;
+                addSlot(new Slot(warehouse, slotIndex, 72 + col * 22, 69 + row * 22) {
                     @Override
                     public void set(ItemStack stack) {
                         if (!stack.isEmpty()) stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
                         super.set(stack);
                     }
                 });
+            }
+        }
         for (int i = 0; i < 9; i++)
             addSlot(new Slot(playerInventory, i, 75 + i * 22, 203));
 
@@ -81,10 +86,10 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
         ItemStack source = slot.getItem();
         ItemStack original = source.copy();
         source.getOrCreateTag().putBoolean(MARKER_KEY, true);
-        if (index < 16) {
-            if (!moveItemStackTo(source, 16, 25, true)) return ItemStack.EMPTY;
+        if (index < WAREHOUSE_SIZE) {
+            if (!moveItemStackTo(source, WAREHOUSE_SIZE, WAREHOUSE_SIZE + 9, true)) return ItemStack.EMPTY;
         } else {
-            if (!moveItemStackTo(source, 0, 16, false)) return ItemStack.EMPTY;
+            if (!moveItemStackTo(source, 0, WAREHOUSE_SIZE, false)) return ItemStack.EMPTY;
         }
         if (source.isEmpty()) slot.set(ItemStack.EMPTY);
         else slot.setChanged();
@@ -109,7 +114,7 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
             if (stack.isEmpty() || !stack.getOrCreateTag().getBoolean(MARKER_KEY)) continue;
             ItemStack remaining = stack.copy();
             remaining.getTag().remove(MARKER_KEY);
-            for (int i = 0; i < 16 && !remaining.isEmpty(); i++) {
+            for (int i = 0; i < WAREHOUSE_SIZE && !remaining.isEmpty(); i++) {
                 ItemStack existing = i < stored.size() ? ItemStack.of(stored.getCompound(i)) : ItemStack.EMPTY;
                 if (existing.isEmpty()) {
                     while (stored.size() <= i) stored.add(new CompoundTag());
@@ -137,7 +142,7 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
 
     private static void load(ServerPlayer player, SimpleContainer container) {
         ListTag list = player.getPersistentData().getList(STORAGE_KEY, 10);
-        for (int i = 0; i < Math.min(16, list.size()); i++) {
+        for (int i = 0; i < Math.min(WAREHOUSE_SIZE, list.size()); i++) {
             ItemStack stack = ItemStack.of(list.getCompound(i));
             if (!stack.isEmpty()) stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
             container.setItem(i, stack);
@@ -146,7 +151,7 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
 
     private static void save(ServerPlayer player, SimpleContainer container) {
         ListTag list = new ListTag();
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < WAREHOUSE_SIZE; i++) {
             ItemStack stack = container.getItem(i).copy();
             if (!stack.isEmpty()) stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
             list.add(stack.save(new CompoundTag()));
