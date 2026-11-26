@@ -1,5 +1,6 @@
 package com.miyazaki.hwmz;
 
+import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Lifecycle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -56,9 +57,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
+import org.slf4j.Logger;
 
 @Mod.EventBusSubscriber(modid = HWmz.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class LobbySessionManager {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final BlockPos LOBBY_ORIGIN = new BlockPos(0, 200, 0);
     private static final BlockPos START_BUTTON = LOBBY_ORIGIN.offset(0, 2, -5);
     private static final double LOBBY_X = 0.5D;
@@ -195,22 +198,25 @@ public final class LobbySessionManager {
         ServerLevel overworld = server.overworld();
         ensureLobby(overworld);
 
+        ServerLevel createdLevel = null;
+        ResourceKey<Level> createdDimension = null;
         try {
-            ServerLevel newLevel = createFreshGameWorld(server);
-            WorldSpawn spawn = findSafeSpawn(newLevel);
+            createdLevel = createFreshGameWorld(server);
+            createdDimension = sessionDimensionKey;
+            WorldSpawn spawn = findSafeSpawn(createdLevel);
             if (spawn == null) {
-                closeAndDeleteGameWorld(server, newLevel, sessionDimensionKey);
+                closeAndDeleteGameWorld(server, createdLevel, createdDimension);
                 sessionLevel = null;
                 sessionDimensionKey = null;
                 return;
             }
 
-            sessionLevel = newLevel;
+            sessionLevel = createdLevel;
             sessionX = spawn.x();
             sessionY = spawn.y();
             sessionZ = spawn.z();
 
-            WorldBorder border = newLevel.getWorldBorder();
+            WorldBorder border = createdLevel.getWorldBorder();
             border.setCenter(0.0D, 0.0D);
             border.setSize(GAME_BORDER_SIZE);
 
@@ -231,9 +237,29 @@ public final class LobbySessionManager {
             sessionActive = false;
             participants.clear();
             alivePlayers.clear();
+
+            for (ServerPlayer onlinePlayer : server.getPlayerList().getPlayers()) {
+                teleportToLobby(onlinePlayer, overworld);
+            }
+
+            if (createdLevel == null && sessionDimensionKey != null) {
+                createdLevel = server.forgeGetWorldMap().get(sessionDimensionKey);
+                createdDimension = sessionDimensionKey;
+            }
+            if (createdLevel != null && createdDimension != null) {
+                try {
+                    closeAndDeleteGameWorld(server, createdLevel, createdDimension);
+                } catch (Exception cleanupException) {
+                    LOGGER.error("Failed to clean up an incomplete HWMZ session world", cleanupException);
+                }
+            } else if (sessionProgressListener != null) {
+                sessionProgressListener.stop();
+                sessionProgressListener = null;
+            }
+
             sessionLevel = null;
             sessionDimensionKey = null;
-            throw new IllegalStateException("Could not create a fresh HWMZ session world", exception);
+            LOGGER.error("Could not create a fresh HWMZ session world", exception);
         }
     }
 
