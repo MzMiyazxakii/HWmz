@@ -8,20 +8,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventoryMenu> {
-    private static final int PANEL = 0xFF202329;
-    private static final int PANEL_DARK = 0xFF171A1F;
-    private static final int PANEL_LIGHT = 0xFF343A43;
-    private static final int TEXT = 0xFFF0F0F0;
-    private static final int MUTED = 0xFF9DA5AE;
-    private static final int ACCENT = 0xFF7FA6C9;
+    private static final int PANEL = 0xFF202329, PANEL_DARK = 0xFF171A1F, PANEL_LIGHT = 0xFF343A43;
+    private static final int TEXT = 0xFFF0F0F0, MUTED = 0xFF9DA5AE, ACCENT = 0xFF7FA6C9;
     private boolean shopMode;
 
     public LobbyInventoryScreen(LobbyInventoryMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 320;
-        imageHeight = 240;
-        inventoryLabelY = 10000;
-        titleLabelY = 10000;
+        imageWidth = 320; imageHeight = 240;
+        inventoryLabelY = 10000; titleLabelY = 10000;
     }
 
     @Override
@@ -45,7 +39,6 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
                 for (int col = 0; col < 4; col++)
                     drawSlot(g, x + 75 + col * 22, y + 62 + row * 22);
         } else {
-            // Case listing panel
             g.fill(x + 22, y + 77, x + 298, y + 178, 0xFF20252B);
             g.fill(x + 22, y + 77, x + 298, y + 78, 0xFF414953);
             g.fill(x + 31, y + 87, x + 289, y + 168, 0xFF292F37);
@@ -92,12 +85,10 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
     @Override
     protected void renderLabels(GuiGraphics g, int mouseX, int mouseY) {
         g.drawString(font, shopMode ? "МАГАЗИН" : "ЛИЧНЫЙ СКЛАД", 12, 11, TEXT, false);
-        g.drawString(font, "ЛОББИ", 12, 23, MUTED, false);
         if (shopMode) {
             g.drawString(font, "Кейс 13 хохлов", 82, 105, TEXT, false);
             g.drawString(font, "500", 82, 123, 0xFFFFD36A, false);
         }
-        g.drawString(font, "ИНВЕНТАРЬ", 14, 188, MUTED, false);
     }
 
     @Override
