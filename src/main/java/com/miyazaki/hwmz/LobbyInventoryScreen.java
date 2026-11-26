@@ -15,7 +15,7 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
     public LobbyInventoryScreen(LobbyInventoryMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 256;
-        imageHeight = 310;
+        imageHeight = 256;
         inventoryLabelY = 10000;
         titleLabelY = 10000;
     }
