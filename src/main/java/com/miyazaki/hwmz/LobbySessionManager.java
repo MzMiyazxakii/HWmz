@@ -365,12 +365,6 @@ public final class LobbySessionManager {
             ServerLevel level,
             ResourceKey<Level> dimensionKey
     ) {
-        try {
-            level.save(null, true, false);
-        } catch (Exception ignored) {
-            // Closing the level below still attempts to flush and release its chunk storage.
-        }
-
         server.forgeGetWorldMap().remove(dimensionKey);
         MinecraftForge.EVENT_BUS.post(new LevelEvent.Unload(level));
         try {
