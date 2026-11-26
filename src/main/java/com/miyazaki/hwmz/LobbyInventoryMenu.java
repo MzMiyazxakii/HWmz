@@ -6,7 +6,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.SimpleContainer;
@@ -14,18 +14,22 @@ import net.minecraftforge.items.ItemHandlerHelper;
 
 public class LobbyInventoryMenu extends AbstractContainerMenu {
     private static final String STORAGE_KEY = "HWMZPersonalStorage";
+    private static final String CURRENCY_KEY = "HWMZCompassCurrency";
     private static final String MARKER_KEY = "hwmz_warehouse_item";
     private final SimpleContainer warehouse;
+    private int currency;
 
     public LobbyInventoryMenu(int id, Inventory playerInventory) {
         super(LobbyMenus.INVENTORY.get(), id);
         warehouse = new SimpleContainer(16);
+        currency = playerInventory.player.getPersistentData().getInt(CURRENCY_KEY);
         if (playerInventory.player instanceof ServerPlayer serverPlayer) {
             load(serverPlayer, warehouse);
         }
+
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
-                addSlot(new Slot(warehouse, row * 4 + col, 43 + col * 33, 29 + row * 33) {
+                addSlot(new Slot(warehouse, row * 4 + col, 75 + col * 22, 62 + row * 22) {
                     @Override
                     public void onTake(Player player, ItemStack stack) {
                         stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
@@ -34,14 +38,31 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
                 });
             }
         }
-        // The lobby screen exposes the player's hotbar, not the survival inventory grid.
+
+        // Only the hotbar is available in the lobby; the normal survival inventory stays separate.
         for (int i = 0; i < 9; i++) {
-            addSlot(new Slot(playerInventory, i, 43 + i * 18, 220));
+            addSlot(new Slot(playerInventory, i, 75 + i * 22, 203));
         }
+
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return currency;
+            }
+
+            @Override
+            public void set(int value) {
+                currency = Math.max(0, value);
+            }
+        });
     }
 
     public LobbyInventoryMenu(int id, Inventory playerInventory, net.minecraft.network.FriendlyByteBuf buffer) {
         this(id, playerInventory);
+    }
+
+    public int getCurrency() {
+        return currency;
     }
 
     @Override
@@ -73,6 +94,7 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
         super.removed(player);
         if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer) {
             save(serverPlayer, warehouse);
+            serverPlayer.getPersistentData().putInt(CURRENCY_KEY, currency);
         }
     }
 
