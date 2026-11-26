@@ -8,7 +8,9 @@ public final class HWmz {
     public static final String MOD_ID = "hwmz";
 
     public HWmz() {
-        LobbyMenus.MENUS.register(FMLJavaModLoadingContext.get().getModEventBus());
+        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        LobbyMenus.MENUS.register(modBus);
+        ModItems.register(modBus);
         LobbyInventoryNetwork.register();
     }
 }
