@@ -22,7 +22,6 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
 
     @Override
     protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
-        updateWarehouseSlotPositions();
         g.fill(0, 0, width, height, 0x88000000);
         int x = leftPos, y = topPos;
         g.fill(x, y, x + imageWidth, y + imageHeight, PANEL_DARK);
