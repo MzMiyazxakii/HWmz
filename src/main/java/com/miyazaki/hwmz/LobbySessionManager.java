@@ -280,8 +280,8 @@ public final class LobbySessionManager {
 
         var registryAccess = server.registryAccess();
         var biomeRegistry = registryAccess.registryOrThrow(Registries.BIOME);
-        boolean usePlains = ThreadLocalRandom.current().nextBoolean();
-        Holder<Biome> biome = biomeRegistry.getHolderOrThrow(usePlains ? Biomes.PLAINS : Biomes.FOREST);
+        // Vanilla villages only generate in village-compatible biomes; use plains for a guaranteed village.
+        Holder<Biome> biome = biomeRegistry.getHolderOrThrow(Biomes.PLAINS);
 
         Holder<NoiseGeneratorSettings> noiseSettings = registryAccess
                 .registryOrThrow(Registries.NOISE_SETTINGS)
@@ -352,7 +352,7 @@ public final class LobbySessionManager {
         BlockPos village = level.findNearestMapStructure(
                 StructureTags.VILLAGE,
                 BlockPos.ZERO,
-                32,
+                64,
                 false
         );
         if (village == null) {
