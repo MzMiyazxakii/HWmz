@@ -26,7 +26,13 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
 
         for (int row = 0; row < 4; row++)
             for (int col = 0; col < 4; col++)
-                addSlot(new Slot(warehouse, row * 4 + col, 75 + col * 22, 62 + row * 22));
+                addSlot(new Slot(warehouse, row * 4 + col, 75 + col * 22, 62 + row * 22) {
+                    @Override
+                    public void set(ItemStack stack) {
+                        if (!stack.isEmpty()) stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
+                        super.set(stack);
+                    }
+                });
         for (int i = 0; i < 9; i++)
             addSlot(new Slot(playerInventory, i, 75 + i * 22, 203));
 
