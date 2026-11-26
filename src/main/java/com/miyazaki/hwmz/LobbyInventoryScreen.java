@@ -10,7 +10,7 @@ import net.minecraft.world.item.Items;
 public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventoryMenu> {
     private static final int PANEL = 0xFF202329, PANEL_DARK = 0xFF171A1F, PANEL_LIGHT = 0xFF343A43;
     private static final int TEXT = 0xFFF0F0F0, MUTED = 0xFF9DA5AE, ACCENT = 0xFF7FA6C9;
-    private static final int GRID_X = 72, GRID_Y = 69, SLOT_STEP = 22, VISIBLE_ROWS = 5;
+    private static final int GRID_X = 72, GRID_Y = 73, SLOT_STEP = 22, VISIBLE_ROWS = 5;
     private boolean shopMode;
     private int scrollRow;
 
@@ -62,21 +62,6 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
         g.fill(x + 244, y + 25, x + 308, y + 26, 0xFF0F1114);
         g.renderItem(new ItemStack(Items.COMPASS), x + 248, y + 8);
         g.drawString(font, Integer.toString(menu.getCurrency()), x + 270, y + 12, TEXT, false);
-    }
-
-    private void updateWarehouseSlotPositions() {
-        for (int i = 0; i < LobbyInventoryMenu.WAREHOUSE_SIZE; i++) {
-            int row = i / LobbyInventoryMenu.WAREHOUSE_COLUMNS;
-            int col = i % LobbyInventoryMenu.WAREHOUSE_COLUMNS;
-            net.minecraft.world.inventory.Slot slot = menu.slots.get(i);
-            if (shopMode || row < scrollRow || row >= scrollRow + VISIBLE_ROWS) {
-                slot.x = -1000;
-                slot.y = -1000;
-            } else {
-                slot.x = GRID_X + col * SLOT_STEP;
-                slot.y = GRID_Y + (row - scrollRow) * SLOT_STEP;
-            }
-        }
     }
 
     private void drawScrollbar(GuiGraphics g) {
@@ -131,7 +116,7 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
         if (!shopMode && inside(mouseX, mouseY, 12, 64, 296, 126)) {
             int maxScroll = LobbyInventoryMenu.WAREHOUSE_SIZE / LobbyInventoryMenu.WAREHOUSE_COLUMNS - VISIBLE_ROWS;
             scrollRow = Math.max(0, Math.min(maxScroll, scrollRow - (int) Math.signum(delta)));
-            updateWarehouseSlotPositions();
+            menu.setWarehouseScrollRow(scrollRow);
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
@@ -140,8 +125,8 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
-            if (inside(mouseX, mouseY, 12, 38, 88, 21)) { shopMode = false; updateWarehouseSlotPositions(); return true; }
-            if (inside(mouseX, mouseY, 103, 38, 88, 21)) { shopMode = true; updateWarehouseSlotPositions(); return true; }
+            if (inside(mouseX, mouseY, 12, 38, 88, 21)) { shopMode = false; menu.setWarehouseScrollRow(scrollRow); return true; }
+            if (inside(mouseX, mouseY, 103, 38, 88, 21)) { shopMode = true; menu.setWarehouseScrollRow(scrollRow); return true; }
             if (shopMode && inside(mouseX, mouseY, 213, 132, 67, 24)) {
                 LobbyInventoryNetwork.requestBuyCase13();
                 return true;
