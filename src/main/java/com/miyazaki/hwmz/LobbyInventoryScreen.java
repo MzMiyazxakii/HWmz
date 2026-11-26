@@ -10,7 +10,9 @@ import net.minecraft.world.item.Items;
 public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventoryMenu> {
     private static final int PANEL = 0xFF202329, PANEL_DARK = 0xFF171A1F, PANEL_LIGHT = 0xFF343A43;
     private static final int TEXT = 0xFFF0F0F0, MUTED = 0xFF9DA5AE, ACCENT = 0xFF7FA6C9;
+    private static final int GRID_X = 72, GRID_Y = 69, SLOT_STEP = 22, VISIBLE_ROWS = 5;
     private boolean shopMode;
+    private int scrollRow;
 
     public LobbyInventoryScreen(LobbyInventoryMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -20,6 +22,7 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
 
     @Override
     protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
+        updateWarehouseSlotPositions();
         g.fill(0, 0, width, height, 0x88000000);
         int x = leftPos, y = topPos;
         g.fill(x, y, x + imageWidth, y + imageHeight, PANEL_DARK);
@@ -35,9 +38,10 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
         g.fill(x + 13, y + 65, x + 307, y + 66, 0xFF414953);
 
         if (!shopMode) {
-            for (int row = 0; row < 4; row++)
-                for (int col = 0; col < 4; col++)
-                    drawSlot(g, x + 75 + col * 22, y + 62 + row * 22);
+            for (int row = 0; row < VISIBLE_ROWS; row++)
+                for (int col = 0; col < LobbyInventoryMenu.WAREHOUSE_COLUMNS; col++)
+                    drawSlot(g, x + GRID_X + col * SLOT_STEP, y + GRID_Y + row * SLOT_STEP);
+            drawScrollbar(g);
         } else {
             g.fill(x + 22, y + 77, x + 298, y + 178, 0xFF20252B);
             g.fill(x + 22, y + 77, x + 298, y + 78, 0xFF414953);
@@ -58,6 +62,29 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
         g.fill(x + 244, y + 25, x + 308, y + 26, 0xFF0F1114);
         g.renderItem(new ItemStack(Items.COMPASS), x + 248, y + 8);
         g.drawString(font, Integer.toString(menu.getCurrency()), x + 270, y + 12, TEXT, false);
+    }
+
+    private void updateWarehouseSlotPositions() {
+        for (int i = 0; i < LobbyInventoryMenu.WAREHOUSE_SIZE; i++) {
+            int row = i / LobbyInventoryMenu.WAREHOUSE_COLUMNS;
+            int col = i % LobbyInventoryMenu.WAREHOUSE_COLUMNS;
+            net.minecraft.world.inventory.Slot slot = menu.slots.get(i);
+            if (shopMode || row < scrollRow || row >= scrollRow + VISIBLE_ROWS) {
+                slot.x = -1000;
+                slot.y = -1000;
+            } else {
+                slot.x = GRID_X + col * SLOT_STEP;
+                slot.y = GRID_Y + (row - scrollRow) * SLOT_STEP;
+            }
+        }
+    }
+
+    private void drawScrollbar(GuiGraphics g) {
+        int x = leftPos + 260, y = topPos + 69;
+        g.fill(x, y, x + 5, y + 108, 0xFF111419);
+        int maxScroll = LobbyInventoryMenu.WAREHOUSE_SIZE / LobbyInventoryMenu.WAREHOUSE_COLUMNS - VISIBLE_ROWS;
+        int thumbY = y + (maxScroll == 0 ? 0 : scrollRow * 108 / (maxScroll + 1));
+        g.fill(x + 1, thumbY, x + 4, thumbY + 28, ACCENT);
     }
 
     private void drawSlot(GuiGraphics g, int x, int y) {
@@ -100,10 +127,21 @@ public class LobbyInventoryScreen extends AbstractContainerScreen<LobbyInventory
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (!shopMode && inside(mouseX, mouseY, 12, 64, 296, 126)) {
+            int maxScroll = LobbyInventoryMenu.WAREHOUSE_SIZE / LobbyInventoryMenu.WAREHOUSE_COLUMNS - VISIBLE_ROWS;
+            scrollRow = Math.max(0, Math.min(maxScroll, scrollRow - (int) Math.signum(delta)));
+            updateWarehouseSlotPositions();
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
-            if (inside(mouseX, mouseY, 12, 38, 88, 21)) { shopMode = false; return true; }
-            if (inside(mouseX, mouseY, 103, 38, 88, 21)) { shopMode = true; return true; }
+            if (inside(mouseX, mouseY, 12, 38, 88, 21)) { shopMode = false; updateWarehouseSlotPositions(); return true; }
+            if (inside(mouseX, mouseY, 103, 38, 88, 21)) { shopMode = true; updateWarehouseSlotPositions(); return true; }
             if (shopMode && inside(mouseX, mouseY, 213, 132, 67, 24)) {
                 LobbyInventoryNetwork.requestBuyCase13();
                 return true;
