@@ -13,6 +13,7 @@ import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.server.level.progress.StoringChunkProgressListener;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.biome.Biomes;
@@ -289,7 +290,8 @@ public final class LobbySessionManager {
 
         ChunkProgressListener progressListener = new StoringChunkProgressListener(11);
         progressListener.start();
-        progressListener.updateSpawnPos(new BlockPos(0, 0, 0).getX() == 0 ? new net.minecraft.world.level.ChunkPos(0, 0) : new net.minecraft.world.level.ChunkPos(0, 0));
+        progressListener.updateSpawnPos(new ChunkPos(0, 0));
+        sessionProgressListener = progressListener;
 
         ServerLevel newLevel = new ServerLevel(
                 server,
@@ -308,7 +310,6 @@ public final class LobbySessionManager {
 
         Map<ResourceKey<Level>, ServerLevel> levels = server.forgeGetWorldMap();
         levels.put(dimensionKey, newLevel);
-        sessionProgressListener = progressListener;
         server.markWorldsDirty();
         MinecraftForge.EVENT_BUS.post(new LevelEvent.Load(newLevel));
         return newLevel;
@@ -366,10 +367,6 @@ public final class LobbySessionManager {
         if (oldLevel != null && oldDimensionKey != null) {
             closeAndDeleteGameWorld(server, oldLevel, oldDimensionKey);
         }
-        if (sessionProgressListener != null) {
-            sessionProgressListener.stop();
-            sessionProgressListener = null;
-        }
     }
 
     private static void closeAndDeleteGameWorld(
@@ -377,6 +374,10 @@ public final class LobbySessionManager {
             ServerLevel level,
             ResourceKey<Level> dimensionKey
     ) {
+        if (sessionProgressListener != null) {
+            sessionProgressListener.stop();
+            sessionProgressListener = null;
+        }
         server.forgeGetWorldMap().remove(dimensionKey);
         MinecraftForge.EVENT_BUS.post(new LevelEvent.Unload(level));
         try {
