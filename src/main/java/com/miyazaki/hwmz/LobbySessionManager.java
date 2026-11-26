@@ -105,7 +105,7 @@ public final class LobbySessionManager {
 
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerRespawnEvent event) {
-        ServerPlayer player = event.getEntity();
+        ServerPlayer player = (ServerPlayer) event.getEntity();
         MinecraftServer server = player.getServer();
         if (server == null) {
             return;
