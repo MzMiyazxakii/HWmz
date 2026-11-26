@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.ButtonBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
+import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -230,6 +231,10 @@ public final class LobbySessionManager {
             BlockPos ground = feet.below();
 
             if (y <= level.getMinBuildHeight() + 1 || y >= level.getMaxBuildHeight() - 2) {
+                continue;
+            }
+
+            if (!level.getBiome(feet).is(Biomes.FOREST) && !level.getBiome(feet).is(Biomes.PLAINS)) {
                 continue;
             }
 
