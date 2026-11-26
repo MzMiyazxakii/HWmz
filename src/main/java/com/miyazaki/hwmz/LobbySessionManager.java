@@ -5,6 +5,7 @@ import com.mojang.serialization.Lifecycle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.StructureTags;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -31,6 +32,7 @@ import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.storage.ServerLevelData;
@@ -67,7 +69,7 @@ public final class LobbySessionManager {
     private static final double LOBBY_X = 0.5D;
     private static final double LOBBY_Y = 200.0D;
     private static final double LOBBY_Z = 0.5D;
-    private static final double GAME_BORDER_SIZE = 1000.0D;
+    private static final double GAME_BORDER_SIZE = 700.0D;
 
     private static final Set<UUID> participants = new HashSet<>();
     private static final Set<UUID> alivePlayers = new HashSet<>();
@@ -203,7 +205,7 @@ public final class LobbySessionManager {
         try {
             createdLevel = createFreshGameWorld(server);
             createdDimension = sessionDimensionKey;
-            WorldSpawn spawn = findSafeSpawn(createdLevel);
+            WorldSpawn spawn = findVillageSpawn(createdLevel);
             if (spawn == null) {
                 closeAndDeleteGameWorld(server, createdLevel, createdDimension);
                 sessionLevel = null;
@@ -217,8 +219,13 @@ public final class LobbySessionManager {
             sessionZ = spawn.z();
 
             WorldBorder border = createdLevel.getWorldBorder();
-            border.setCenter(0.0D, 0.0D);
+            border.setCenter(spawn.x(), spawn.z());
             border.setSize(GAME_BORDER_SIZE);
+
+            createdLevel.setDayTime(1000L);
+            createdLevel.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false, server);
+            createdLevel.getGameRules().getRule(GameRules.RULE_WEATHER_CYCLE).set(false, server);
+            createdLevel.setWeatherParameters(0, 0, false, false);
 
             participants.clear();
             alivePlayers.clear();
@@ -288,7 +295,7 @@ public final class LobbySessionManager {
         var worldData = server.getWorldData();
         WorldOptions worldOptions = new WorldOptions(
                 seed,
-                worldData.worldGenOptions().generateStructures(),
+                true,
                 false
         );
         ServerLevelData levelData = new PrimaryLevelData(
@@ -341,30 +348,63 @@ public final class LobbySessionManager {
         return newLevel;
     }
 
-    private static WorldSpawn findSafeSpawn(ServerLevel level) {
-        ThreadLocalRandom random = ThreadLocalRandom.current();
+    private static WorldSpawn findVillageSpawn(ServerLevel level) {
+        BlockPos village = level.findNearestMapStructure(
+                StructureTags.VILLAGE,
+                BlockPos.ZERO,
+                32,
+                false
+        );
+        if (village == null) {
+            LOGGER.warn("No village structure found within 32 chunks of the session origin");
+            return null;
+        }
 
-        for (int attempt = 0; attempt < 100; attempt++) {
-            int x = random.nextInt(-450, 451);
-            int z = random.nextInt(-450, 451);
-            level.getChunk(x >> 4, z >> 4);
+        int villageChunkX = village.getX() >> 4;
+        int villageChunkZ = village.getZ() >> 4;
 
-            int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-            BlockPos feet = new BlockPos(x, y, z);
-            BlockPos ground = feet.below();
-
-            if (y <= level.getMinBuildHeight() + 1 || y >= level.getMaxBuildHeight() - 2) {
-                continue;
+        // Generate the village and its surrounding chunks before selecting the player spawn.
+        for (int chunkX = villageChunkX - 4; chunkX <= villageChunkX + 4; chunkX++) {
+            for (int chunkZ = villageChunkZ - 4; chunkZ <= villageChunkZ + 4; chunkZ++) {
+                level.getChunk(chunkX, chunkZ);
             }
+        }
 
-            BlockState groundState = level.getBlockState(ground);
-            if (groundState.getFluidState().isEmpty()
-                    && !groundState.getCollisionShape(level, ground).isEmpty()
-                    && level.getBlockState(feet).isAir()
-                    && level.getBlockState(feet.above()).isAir()
-                    && level.getFluidState(feet).isEmpty()
-                    && level.getFluidState(feet.above()).isEmpty()) {
-                return new WorldSpawn(x + 0.5D, y, z + 0.5D);
+        WorldSpawn spawn = findSafeSpawnNear(level, village.getX(), village.getZ(), 80);
+        if (spawn == null) {
+            LOGGER.warn("A village was located, but no safe player spawn was found near it");
+        }
+        return spawn;
+    }
+
+    private static WorldSpawn findSafeSpawnNear(ServerLevel level, int centerX, int centerZ, int radius) {
+        for (int distance = 0; distance <= radius; distance += 4) {
+            for (int dx = -distance; dx <= distance; dx += 4) {
+                for (int dz = -distance; dz <= distance; dz += 4) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != distance && distance != 0) {
+                        continue;
+                    }
+
+                    int x = centerX + dx;
+                    int z = centerZ + dz;
+                    int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+                    BlockPos feet = new BlockPos(x, y, z);
+                    BlockPos ground = feet.below();
+
+                    if (y <= level.getMinBuildHeight() + 1 || y >= level.getMaxBuildHeight() - 2) {
+                        continue;
+                    }
+
+                    BlockState groundState = level.getBlockState(ground);
+                    if (groundState.getFluidState().isEmpty()
+                            && !groundState.getCollisionShape(level, ground).isEmpty()
+                            && level.getBlockState(feet).isAir()
+                            && level.getBlockState(feet.above()).isAir()
+                            && level.getFluidState(feet).isEmpty()
+                            && level.getFluidState(feet.above()).isEmpty()) {
+                        return new WorldSpawn(x + 0.5D, y, z + 0.5D);
+                    }
+                }
             }
         }
 
