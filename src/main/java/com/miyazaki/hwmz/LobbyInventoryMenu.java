@@ -36,7 +36,7 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
         }
         // The lobby screen exposes the player's hotbar, not the survival inventory grid.
         for (int i = 0; i < 9; i++) {
-            addSlot(new Slot(playerInventory, i, 43 + i * 18, 274));
+            addSlot(new Slot(playerInventory, i, 43 + i * 18, 220));
         }
     }
 
