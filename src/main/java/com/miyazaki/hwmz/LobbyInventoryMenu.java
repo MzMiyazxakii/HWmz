@@ -90,10 +90,10 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
         ItemStack source = slot.getItem();
         ItemStack original = source.copy();
         source.getOrCreateTag().putBoolean(MARKER_KEY, true);
-        if (index < WAREHOUSE_SIZE) {
-            if (!moveItemStackTo(source, WAREHOUSE_SIZE, WAREHOUSE_SIZE + 9, true)) return ItemStack.EMPTY;
+        if (index < VISIBLE_SLOTS) {
+            if (!moveItemStackTo(source, VISIBLE_SLOTS, VISIBLE_SLOTS + 9, true)) return ItemStack.EMPTY;
         } else {
-            if (!moveItemStackTo(source, 0, WAREHOUSE_SIZE, false)) return ItemStack.EMPTY;
+            if (!moveItemStackTo(source, 0, VISIBLE_SLOTS, false)) return ItemStack.EMPTY;
         }
         if (source.isEmpty()) slot.set(ItemStack.EMPTY);
         else slot.setChanged();
@@ -142,6 +142,32 @@ public class LobbyInventoryMenu extends AbstractContainerMenu {
         }
         root.put(STORAGE_KEY, stored);
         player.getInventory().setChanged();
+    }
+
+
+    private static class WarehouseSlot extends Slot {
+        private final SimpleContainer storage;
+        private int storageIndex;
+
+        WarehouseSlot(SimpleContainer storage, int x, int y, int initialIndex) {
+            super(storage, 0, x, y);
+            this.storage = storage;
+            this.storageIndex = initialIndex;
+        }
+
+        void setStorageIndex(int index) { this.storageIndex = index; }
+        @Override public ItemStack getItem() { return storage.getItem(storageIndex); }
+        @Override public boolean hasItem() { return !getItem().isEmpty(); }
+        @Override public void set(ItemStack stack) {
+            if (!stack.isEmpty()) stack.getOrCreateTag().putBoolean(MARKER_KEY, true);
+            storage.setItem(storageIndex, stack);
+            setChanged();
+        }
+        @Override public ItemStack remove(int amount) { return storage.removeItem(storageIndex, amount); }
+        @Override public void setChanged() { storage.setChanged(); }
+        @Override public boolean mayPlace(ItemStack stack) { return true; }
+        @Override public int getMaxStackSize() { return storage.getMaxStackSize(); }
+        @Override public int getMaxStackSize(ItemStack stack) { return Math.min(storage.getMaxStackSize(), stack.getMaxStackSize()); }
     }
 
     private static void load(ServerPlayer player, SimpleContainer container) {
