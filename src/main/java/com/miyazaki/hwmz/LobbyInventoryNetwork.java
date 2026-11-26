@@ -26,7 +26,6 @@ public final class LobbyInventoryNetwork {
                     }
                     ctx.get().setPacketHandled(true);
                 }).add();
-
         CHANNEL.messageBuilder(BuyCase13Request.class, 1)
                 .encoder((msg, buf) -> {})
                 .decoder(buf -> new BuyCase13Request())
@@ -34,20 +33,14 @@ public final class LobbyInventoryNetwork {
                     ServerPlayer player = ctx.get().getSender();
                     if (player != null && LobbySessionManager.isLobbyPlayer(player)
                             && player.containerMenu instanceof LobbyInventoryMenu menu) {
-                        menu.tryPurchaseCase13();
+                        menu.tryPurchaseCase13(player);
                     }
                     ctx.get().setPacketHandled(true);
                 }).add();
     }
 
-    public static void requestOpen() {
-        CHANNEL.sendToServer(new OpenInventoryRequest());
-    }
-
-    public static void requestBuyCase13() {
-        CHANNEL.sendToServer(new BuyCase13Request());
-    }
-
+    public static void requestOpen() { CHANNEL.sendToServer(new OpenInventoryRequest()); }
+    public static void requestBuyCase13() { CHANNEL.sendToServer(new BuyCase13Request()); }
     public static final class OpenInventoryRequest {}
     public static final class BuyCase13Request {}
 }
