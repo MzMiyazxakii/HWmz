@@ -9,6 +9,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.progress.ChunkProgressListener;
+import net.minecraft.server.level.progress.StoringChunkProgressListener;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
@@ -69,6 +71,7 @@ public final class LobbySessionManager {
     private static boolean sessionActive;
     private static ServerLevel sessionLevel;
     private static ResourceKey<Level> sessionDimensionKey;
+    private static ChunkProgressListener sessionProgressListener;
     private static double sessionX;
     private static double sessionY;
     private static double sessionZ;
@@ -284,6 +287,10 @@ public final class LobbySessionManager {
             throw new IllegalStateException("Could not access the server world executor or save storage");
         }
 
+        ChunkProgressListener progressListener = new StoringChunkProgressListener(11);
+        progressListener.start();
+        progressListener.updateSpawnPos(new BlockPos(0, 0, 0).getX() == 0 ? new net.minecraft.world.level.ChunkPos(0, 0) : new net.minecraft.world.level.ChunkPos(0, 0));
+
         ServerLevel newLevel = new ServerLevel(
                 server,
                 executor,
@@ -291,7 +298,7 @@ public final class LobbySessionManager {
                 levelData,
                 dimensionKey,
                 gameStem,
-                null,
+                progressListener,
                 false,
                 BiomeManager.obfuscateSeed(seed),
                 List.of(),
@@ -301,6 +308,7 @@ public final class LobbySessionManager {
 
         Map<ResourceKey<Level>, ServerLevel> levels = server.forgeGetWorldMap();
         levels.put(dimensionKey, newLevel);
+        sessionProgressListener = progressListener;
         server.markWorldsDirty();
         MinecraftForge.EVENT_BUS.post(new LevelEvent.Load(newLevel));
         return newLevel;
@@ -309,7 +317,7 @@ public final class LobbySessionManager {
     private static WorldSpawn findSafeSpawn(ServerLevel level) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
-        for (int attempt = 0; attempt < 1000; attempt++) {
+        for (int attempt = 0; attempt < 100; attempt++) {
             int x = random.nextInt(-450, 451);
             int z = random.nextInt(-450, 451);
             level.getChunk(x >> 4, z >> 4);
@@ -357,6 +365,10 @@ public final class LobbySessionManager {
 
         if (oldLevel != null && oldDimensionKey != null) {
             closeAndDeleteGameWorld(server, oldLevel, oldDimensionKey);
+        }
+        if (sessionProgressListener != null) {
+            sessionProgressListener.stop();
+            sessionProgressListener = null;
         }
     }
 
