@@ -1,20 +1,20 @@
 {
   "parent": "minecraft:block/block",
   "textures": {
-    "particle": "hwmz:item/case_13_chest",
-    "chest": "hwmz:item/case_13_chest"
+    "particle": "hwmz:item/case_13_head",
+    "head": "hwmz:item/case_13_head"
   },
   "elements": [
     {
       "from": [4, 4, 4],
       "to": [12, 12, 12],
       "faces": {
-        "north": {"texture": "#chest", "uv": [0, 0, 16, 16]},
-        "south": {"texture": "#chest", "uv": [0, 0, 16, 16]},
-        "east": {"texture": "#chest", "uv": [0, 0, 16, 16]},
-        "west": {"texture": "#chest", "uv": [0, 0, 16, 16]},
-        "up": {"texture": "#chest", "uv": [0, 0, 16, 16]},
-        "down": {"texture": "#chest", "uv": [0, 0, 16, 16]}
+        "north": {"texture": "#head", "uv": [8, 8, 16, 16]},
+        "south": {"texture": "#head", "uv": [24, 8, 32, 16]},
+        "east": {"texture": "#head", "uv": [0, 8, 8, 16]},
+        "west": {"texture": "#head", "uv": [16, 8, 24, 16]},
+        "up": {"texture": "#head", "uv": [8, 0, 16, 8]},
+        "down": {"texture": "#head", "uv": [16, 0, 24, 8]}
       }
     }
   ],
